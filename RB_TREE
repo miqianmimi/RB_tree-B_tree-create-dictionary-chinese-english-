@@ -1,0 +1,593 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Nov  8 13:37:03 2017
+
+@author: miqian
+"""
+
+"""
+This document is for Red-Black Tree details:
+"""
+from tkinter import Frame,END,Button,Tk,Text,X     # 导入 Tkinter 库
+
+class Noddy:
+    def __init__(self,key,color='Red'):
+        self.key=key
+        self.value=None
+        self.color=color
+        self.parent=None
+        self.left_children=None
+        self.right_children=None
+    
+    def __str__(self):
+        return self.key.__str__() + " : " + self.value.__str__()
+
+    def merge(self,Node):
+        if Node.key!=self.key:
+            return -1
+        if self.value!=Node.value :
+            self.value +=";" +Node.value   
+            
+NIPS=Noddy(None,'Black')
+NIPS.value=None
+NIPS.key=None
+NIPS.color='Black'
+
+class RB_Tree: #这里开始构建一棵树
+    def __init__(self):
+        self.size=0
+        self.root=NIPS
+        self.traveler="" #设定一个traveler写入文件
+        self.inorderdump='Key-Value'+'\n'#设定一个dump来写入文件
+    
+        
+    def left_rotate(self,Node):
+        x=Node
+        y=x.right_children
+        x.right_children=y.left_children
+        if y.left_children != NIPS:
+            y.left_children.parent=x
+        y.parent=x.parent
+        if x.parent ==NIPS:
+            self.root=y
+        elif x == x.parent.left_children:
+            x.parent.left_children=y
+        else:
+            x.parent.right_children=y
+        y.left_children=x
+        x.parent=y
+    
+    def right_rotate(self,Node): # x=b y=a
+        b=Node
+        a=b.left_children
+        b.left_children=a.right_children 
+        if a.right_children!=NIPS:
+            a.right_children.parent=b
+        a.parent=b.parent
+        if b.parent==NIPS:
+            self.root=a
+        elif b==b.parent.right_children:
+            b.parent.right_children=a
+        else:
+            b.parent.left_children=a
+        a.right_children=b
+        b.parent=a
+    
+    
+    def RB_insert_fixup(self,Node):
+        z=Node
+        while z.parent.color=='Red':
+            if z.parent == z.parent.parent.left_children:
+                y=z.parent.parent.right_children
+                if y.color=='Red':
+                    z.parent.color='Black'
+                    y.color='Black'
+                    z.parent.parent.color='Red'
+                    z=z.parent.parent
+                elif z==z.parent.right_children:
+                    z=z.parent
+                    self.left_rotate(z)
+                else:
+                    z.parent.color='Black'
+                    z.parent.parent.color='Red'
+                    self.right_rotate(z.parent.parent)
+            elif z.parent == z.parent.parent.right_children:
+                y=z.parent.parent.left_children
+                if y.color=='Red':
+                    z.parent.color='Black'
+                    y.color='Black'
+                    z.parent.parent.color='Red'
+                    z=z.parent.parent
+                elif z==z.parent.left_children:
+                    z=z.parent
+                    self.right_rotate(z)
+                else:
+                    z.parent.color='Black'
+                    z.parent.parent.color='Red'
+                    self.left_rotate(z.parent.parent)
+        self.root.color = 'Black'
+
+                
+        
+    def RB_insert(self,Node):
+        z=Node
+        y=NIPS
+        x=self.root
+        while x is not NIPS:
+            y=x
+            if z.key<x.key:
+                x=x.left_children
+            elif z.key>x.key:
+                x=x.right_children
+            else:
+                x.merge(z)
+                return 1
+        z.parent=y
+        if y is NIPS:
+            self.root=z
+            self.root.parent=NIPS
+        elif z.key<y.key:
+            y.left_children=z
+        elif z.key>y.key:
+            y.right_children=z
+        else:
+            y.merge(z)
+            return 1
+        z.left_children=NIPS
+        z.right_children=NIPS
+        z.color='Red'
+        self.RB_insert_fixup(z)
+        self.size += 1
+
+    def RB_insert_independent(self,Node):
+        z=Node
+        y=NIPS
+        x=self.root
+        while x is not NIPS:
+            y=x
+            if z.key<x.key:
+                x=x.left_children
+            elif z.key>x.key:
+                x=x.right_children
+            else:
+                #x.merge(z)
+                return 1
+        z.parent=y
+        if y is NIPS:
+            self.root=z
+            self.root.parent=NIPS
+        elif z.key<y.key:
+            y.left_children=z
+        elif z.key>y.key:
+            y.right_children=z
+        else:
+            #y.merge(z)
+            return 1
+        z.left_children=NIPS
+        z.right_children=NIPS
+        z.color='Red'
+        self.RB_insert_fixup(z)
+        self.size += 1    
+        
+    def RB_transplant(self,u,v):
+        if u.parent==NIPS:
+            self.root=v
+        elif u==u.parent.left_children:
+            u.parent.left_children=v
+        else: u.parent.right_children=v
+        v.parent=u.parent
+
+    def Tree_Minimum(self,Node):
+        x=Node
+        while x.left_children !=NIPS:
+            x=x.left_children
+        return x
+    
+    def RB_delete_fixup(self,Node):
+        x=Node
+        while x!= self.root and x.color=='Black':
+            if x==x.parent.left_children:
+                w=x.parent.right_children
+                if w.color=='Red':
+                    w.color='Black'
+                    x.parent.color='Red'
+                    self.left_rotate(x.parent)
+                    w=x.parent.right_children
+                if w.left_children.color=='Black' and w.right_children.color=='Black':
+                    w.color='Red'
+                    x=x.parent
+                elif w.right_children.color=='Black':
+                    w.left_children.color='Black'
+                    w.color='Red'
+                    self.right_rotate(w)
+                    w=x.parent.right_children
+                else:
+                    w.color=x.parent.color
+                    x.parent.color='Black'
+                    w.right_children.color='Black'
+                    self.left_rotate(x.parent)
+                    x=self.root
+            else:
+                w=x.parent.right_children
+                w=x.parent.left_children
+                if w.color=='Red':
+                    w.color='Black'
+                    x.parent.color='Red'
+                    self.right_rotate(x.parent)
+                    w=x.parent.left_children
+                if w.right_children.color=='Black' and w.left_children.color=='Black':
+                    w.color='Red'
+                    x=x.parent
+                elif w.left_children.color=='Black':
+                    w.right_children.color='Black'
+                    w.color='Red'
+                    self.left_rotate(w)
+                    w=x.parent.left_children
+                else:
+                    w.color=x.parent.color
+                    x.parent.color='Black'
+                    w.left_children.color='Black'
+                    self.right_rotate(x.parent)
+                    x=self.root 
+        x.color='Black'
+        
+                
+        
+    def RB_delete(self,Node):
+        z=Node
+        y=z
+        y_original_color=y.color
+        if z.left_children==NIPS:
+            x=z.right_children
+            self.RB_transplant(z,z.right_children)
+        elif z.right_children==NIPS:
+            x=z.left_children
+            self.RB_transplant(z,z.left_children)
+        else:
+            y=self.Tree_Minimum(z.right_children)
+            y_original_color=y.color
+            x=y.right_children
+            if y.parent==z:
+                x.parent=y
+            else:
+                self.RB_transplant(y,y.right_children)
+                y.right_children=z.right_children
+                y.right_children.parent=y
+            self.RB_transplant(z,y)
+            y.left_children=z.left_children
+            y.left_children.parent=y
+            y.color=z.color
+        if y_original_color=='Black':
+            self.RB_delete_fixup(x)
+    
+    def RB_search(self,node,k):
+        '''
+        这里输入一个KEY值K,和一个开始查找的节点NODE，若一开始找，那NODE=NONE. 最后返回一个找的的节点x
+        '''
+        x=node
+        if node==None:
+            x=self.root
+        if x== NIPS or k==x.key:
+            return x
+        if k<x.key:
+            return self.RB_search(x.left_children,k)
+        else:
+            return self.RB_search(x.right_children,k)
+        
+    def inoder_tree_walk(self,Node):
+        '''
+        若一开始输入的节点为None,则从ROOT节点开始往下中序遍历，打印出所有的节点的key值
+        '''
+        if Node==None:
+            Node=self.root
+        if Node!=NIPS:
+            self.inoder_tree_walk(Node.left_children)
+            print(str(Node.key)+'-'+str(Node.value))
+            self.inoder_tree_walk(Node.right_children)
+            
+    def inorder_dump(self,node=None):
+        if node==None:
+            node=self.root
+            self.inorderdump="Key-Value"+'\n'                   
+        if node is not NIPS:
+            self.inorder_dump(node.left_children)
+            self.inorderdump+=node.key.__str__()+"-"+node.value.__str__()+"\n"
+            self.inorder_dump(node.right_children) 
+            
+    
+    '''
+    先序遍历中加了很多东西
+    '''
+    def preorder_travel(self,node=None,child=0,level=0):
+        if node==None:
+            node=self.root
+            self.traveler=""
+        if node is NIPS:#已经达到树的空节点
+            self.traveler+="level=" +level.__str__()+" child="+child.__str__()+" null \n"
+        else:
+            self.traveler+="level=" +level.__str__()+" child="+child.__str__()+" " \
+            + node.key.__str__() + " : " +node.value.__str__()+" "+node.color.__str__()+ "\n"
+        if node is not NIPS:
+            level+=1
+            self.preorder_travel(node.left_children,0,level)
+            self.preorder_travel(node.right_children,1,level)
+            
+    def __str__(self):
+        self.preorder_travel()
+        try:
+            file_handler = open('../file/RedBlackTree_exptomize.txt', 'w', -1, "utf-8")
+            file_handler.write(self.traveler)
+            print ('OK')     
+        except FileNotFoundError:
+            return -1
+        return 1   
+
+    
+    
+    
+def initialize():
+    global treetype,Btree,RBtree,Tree
+    RBtree=RBtree.RB_tree()
+    if treetype=='RBtree':
+        Tree=RBtree
+
+def LoadFile(treetype):
+    name=input("请输入您想要添加到字典的文本表格名称：\n")
+    file=open('../file/'+str(name)+'.txt')
+    if treetype=='RBtree':
+        RBtree=RB_Tree()
+    num=0
+    for i in file:
+        if num %2==0:
+            pp=i.split()
+            ppp=len(str(pp))
+            key=str(pp)[2:ppp-2]
+            #print(key)
+        else:
+            pp=i.split()                        
+            pppp=len(pp)
+            if pppp==1:
+                value=pp[0]
+            if pppp==2:
+                value=pp[0]+pp[1]
+            #print(value)
+        num=num+1
+        if num%2==0 and num>0:
+            c=Noddy(key,'Red')
+            c.key=key
+            c.value=value
+            RBtree.RB_insert(c)
+    #RBtree.inoder_tree_walk(RBtree.root)
+    RBtree.__str__()
+    return("OK")
+def create():
+    file=open('../file/unix.txt')
+    RBtree=RB_Tree()
+    num=0
+    for i in file:
+        if num %2==0:
+            pp=i.split()
+            ppp=len(str(pp))
+            key=str(pp)[2:ppp-2]
+            #print(key)
+        else:
+            pp=i.split()                        
+            pppp=len(pp)
+            if pppp==1:
+                value=pp[0]
+            if pppp==2:
+                value=pp[0]+pp[1]
+            #print(value)
+        num=num+1
+        if num%2==0 and num>0:
+            c=Noddy(key,'Red')
+            c.key=key
+            c.value=value
+            RBtree.RB_insert(c)
+    #RBtree.inoder_tree_walk(RBtree.root)
+    #RBtree.__str__()
+    return(RBtree)
+    
+def Insert(RBtree):
+    global modified
+    modified=0
+    key=input("请输入您想要增添到红黑树的单词: \n")
+    value=input("请输入您想要增添到该键值的单词解释:\n")  
+    C=Noddy(key,'Red')
+    C.key=key
+    C.value=value
+    a=RBtree.RB_insert_independent(C)
+    if a==1:
+        print("Error:key conflict")
+        return("Error:key conflict \n")
+        modified =1
+    else:
+        print("Done")
+        return("Done \n")
+        
+def Put(RBtree):
+    global modified
+    modified =1
+    key=input("请输入您想要增添到红黑树的单词: \n")
+    value=input("请输入您想要增添到该键值的单词解释:\n")   
+    C=Noddy(key,'Red')
+    C.key=key
+    C.value=value
+    a=RBtree.RB_insert(C)
+    if a==1:
+        print("Key already exists")
+        print("Update an already existing key")   
+        return("Key already exists,Update an already existing key \n")
+    else:
+        print("Put a new word:Done")
+        return("Put a new word:Done \n")
+def GetValue(RBtree):
+    key=input("请输入您想要查找中文字义的单词: \n")
+    a=RBtree.RB_search(None,key)
+    if a!=NIPS:
+        print(a.value)
+        return(key+'-'+a.value+"\n")
+    if a==NIPS:
+        print("Error: key missing")
+        return("Error: key missing \n")
+        
+def DelKey(RBtree):
+    key=input("请输入您想要删除的单词: \n")
+    a=RBtree.RB_search(None,key)
+    if a==NIPS:
+        print("Error: key missing")
+        return("Error: key missing \n")
+    else: 
+        RBtree.RB_delete(a)
+        print("Delete already Done")
+        return("Delete already Done \n")
+
+def Dump(RBtree):
+    print('key-value')
+    RBtree.inoder_tree_walk(RBtree.root)
+    print("Dump print finished")
+    
+    '''
+    此处dump的功能除了可以把所有的单词对print出来
+    还可以将这些单词对全部放入一个文档中
+    '''
+    RBtree.inorder_dump(None)
+    file_handler = open('../file/RedBlackTree_dump.txt', 'w', -1, "utf-8")
+    file_handler.write(RBtree.inorderdump)
+    print ('Dump into file finished')  
+    return(RBtree.inorderdump+"\n"+"Dump finished")
+
+
+#——————————————————————————————————
+#RBtree=LoadFile('RBtree')       
+'''
+检查是否成功insert and put and GetValue
+Insert(RBtree)
+print(RBtree.root.key)
+print(RBtree.root.value)
+Put(RBtree)
+print(RBtree.root.key)
+print(RBtree.root.value)
+GetValue(RBtree)✅
+'''
+'''
+检查是否删除成功：delete
+DelKey(RBtree)
+print(RBtree.root.key)
+GetValue(RBtree)✅
+'''
+'''
+检查是否添加字典内容表成功
+注意添加的内容必须在file文件夹下面✅
+'''
+'''
+检查是否Dump成功(RBtree) ✅
+'''
+#________________________________
+
+class Application(Frame):
+    def __init__(self,master=None):
+        Frame.__init__(self,master)
+        self.pack()
+        self.createWidgets()
+    
+    def LoadFile(self):
+        A=LoadFile('RBtree')    
+        self.show.delete(1.0,END)
+        self.show.insert(1.0,A)
+    
+    def Insert(self):
+        RBtree=create() 
+        a=Insert(RBtree)
+        self.show.delete(1.0,END)
+        self.show.insert(1.0,a)
+
+    def Put(self):
+        RBtree=create() 
+        b=Put(RBtree)
+        h="验证单词是否添加成功，请查找您刚刚添加的词 \n"
+        i=GetValue(RBtree)
+        self.show.delete(1.0,END)
+        self.show.insert(END,b)
+        self.show.insert(END,h)
+        self.show.insert(END,i)
+
+    
+    def GetValue(self):
+        RBtree=create()   
+        c=GetValue(RBtree)
+        self.show.delete(1.0,END)
+        self.show.insert(END,c)
+        
+        
+    def DelKey(self):
+        RBtree=create() 
+        d=DelKey(RBtree)
+        print("验证单词是否添加成功，请查找您刚刚添加的词")
+        f="验证单词是否添加成功，请查找您刚刚添加的词 \n"
+        g=GetValue(RBtree)
+        self.show.delete(1.0,END)        
+        self.show.insert(END,d)
+        self.show.insert(END,f)
+        self.show.insert(END,g)
+                       
+    def Dump(self):
+        RBtree=create() 
+        e=Dump(RBtree)
+        self.show.delete(1.0,END)
+        self.show.insert(END,e)
+    
+    def createWidgets(self):
+        self.QUIT=Button(self)
+        self.QUIT["text"]="Quit"
+        self.QUIT["fg"]="blue"
+        self.QUIT["command"]=self.quit
+        
+        self.QUIT.pack(fill=X)
+        
+        self.load=Button(self)
+        self.load["text"]="1.Load"
+        self.load["command"]=self.LoadFile
+        
+        self.load.pack(fill=X)
+
+        self.insert=Button(self)
+        self.insert["text"]="2.Insert"
+        self.insert["command"]=self.Insert
+        
+        self.insert.pack(fill=X)
+        
+        self.put=Button(self)
+        self.put["text"]="3.Put"
+        self.put["command"]=self.Put
+        
+        self.put.pack(fill=X)
+
+        self.getvalue=Button(self)
+        self.getvalue["text"]="4.Getvalue"
+        self.getvalue["command"]=self.GetValue
+        self.getvalue.pack(fill=X)
+        
+        self.delkey=Button(self)
+        self.delkey["text"]="5.Delkey"
+        self.delkey["command"]=self.DelKey
+        self.delkey.pack(fill=X)        
+
+        self.dump=Button(self)
+        self.dump["text"]="6.Dump"
+        self.dump["command"]=self.Dump
+        self.dump.pack(fill=X)
+        
+        self.show=Text(self)	
+        self.show.pack(fill=X,side="bottom")
+        self.show.insert(END, "print board")  #END表示插入到当前文本最后
+
+        
+
+
+root=Tk()
+root.title("RBtree")
+app=Application(master=root)
+app.mainloop()
+root.destroy()
