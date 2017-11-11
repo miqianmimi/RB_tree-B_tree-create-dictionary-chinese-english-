@@ -1,0 +1,695 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Nov 10 10:59:52 2017
+
+@author: miqian
+"""
+
+'''
+This document is for B_Tree details:
+'''
+from tkinter import Frame,END,Button,Tk,Text,X     # 导入 Tkinter 库
+
+class pair:
+    def __init__(self):
+        self.key=[]
+        self.satellite=[]
+    def merge(self,pair):
+        if pair.key!=self.key:
+            return -1
+        if self.satellite!=pair.satellite:
+            self.satellite +=";" +str(pair.satellite)
+    
+    def __str__(self):
+        return self.key.__str__()+"-"+self.satellite.__str__()
+
+    
+class Nobby:
+    def __init__(self):
+        self.pair=[]#pair 里面存了很多pair pair里有KEY 和satellite
+        self.children=[]#children 里面存了很多节点
+        self.parent=None
+        self.n=0
+    '''
+    这边add_children delete_children add_keysatellite都没用到
+    '''
+  
+    def add_satellite(self,k):
+        '''
+        self是本身这个NOBBY，K是一个pair 
+        '''
+        self.pair.append(k)
+        self.pair.sort(key=lambda x:x.key)
+
+    def del_satellite(self,k):
+        self.pair.remove(k)
+  
+    def add_child(self,node): #将node加为self的孩子
+        node.parent=self
+        self.children.append(node)
+        self.children.sort(key= lambda x:x.pair[0].key)
+    
+    def del_child(self,node):
+        self.children.remove(node)          
+    def isleaf(self):
+        return not self.children
+    
+    def delete(self,key):
+        for index,p in enumerate(self.pair):
+            if key==p.key:
+                self.pair.remove(p)
+                return index
+        return -1
+    
+        
+NIL=Nobby()
+NIL.pair.append(pair())
+NIL.pair[0].key=None
+NIL.pair[0].satellite=None
+NIL.children=None
+NIL.parent=None
+
+class BTree:            
+    def __init__(self):
+        self.root=None
+        self.degree=3
+        self.max_pair=2*self.degree-1
+        self.min_pair=self.degree-1
+        self.max_children=2*self.degree
+        self.min_children=self.degree
+        self.traveller=""
+        self.dump=""
+        self.size=0
+    
+    def BTree_Creat(self):
+        x=Nobby()
+        x.isleaf=True
+        x.n=0
+        self.root=x
+        '''
+        书上的Disk Write & Disk Read在这里都不需要写出
+        '''
+   
+    def BTree_Split_Child(self,x):
+        '''
+        x结点处展开
+        x满了，x的中间节点变成父亲节点
+        x的左右分别分成两个儿子
+        右边那个儿子叫rightnode
+        '''
+        mid=int(len(x.pair)/2)
+        right_node=Nobby()
+        for pair in x.pair[mid+1:]:
+            right_node.add_satellite(pair)
+        for child in x.children[mid+1:]:
+            right_node.add_child(child)
+        
+        '''
+        取中间节点作为parent
+        '''
+        mid_pair=x.pair[mid]
+        '''
+        x自身变成左边的部分节点
+        '''
+        x.pair=x.pair[:mid]
+        x.children=x.children[:mid+1]
+        
+        '''
+        把中间节点放入x的爸爸
+        '''
+        parent=x.parent
+        if parent:
+            parent.add_satellite(mid_pair)
+            parent.add_child(right_node)
+        else:
+            '''
+            爸爸新加一层，是根节点
+            '''
+            self.root=Nobby()
+            self.root.add_satellite(mid_pair)
+            self.root.add_child(x)
+            self.root.add_child(right_node)
+        return x.parent
+    
+    def BTree_Insert(self,k):
+        '''
+        x有待插入
+        k是个pair已经有值
+        '''
+        if self.root:
+            node=self.root
+            while 1:
+                if len(node.pair)==self.max_pair:
+                    node=self.BTree_Split_Child(node)
+                if node.isleaf():
+                    for index,e in enumerate(node.pair):
+                        if k.key==e.key:
+                            e.merge(k)
+                            return
+                    node.add_satellite(k)
+                    self.size+=1
+                    return
+                for index,e in enumerate(node.pair):
+                    if k.key<e.key:
+                        node=node.children[index] #到孩子里面去找正确位置
+                        break
+                    elif k.key==e.key:
+                        e.merge(k)
+                        return
+                else:
+                    node=node.children[-1]
+        else:
+            self.root=Nobby()
+            self.root.add_satellite(k)
+                    
+
+    def BTree_Insert_Independent(self,k):
+        '''
+        x有待插入
+        k是个pair已经有值
+        '''
+        if self.root:
+            node=self.root
+            while 1:
+                if len(node.pair)==self.max_pair:
+                    node=self.BTree_Split_Child(node)
+                if node.isleaf():
+                    for index,e in enumerate(node.pair):
+                        if k.key==e.key:
+                            print("Error:key conflict")
+                            #e.merge(k)
+                            return("Error:key conflict \n"+"This "+k.key+" already exist")
+                    node.add_satellite(k)
+                    self.size+=1
+                    return("Insert "+k.key+" Done")
+                for index,e in enumerate(node.pair):
+                    if k.key<e.key:
+                        node=node.children[index] #到孩子里面去找正确位置
+                        break
+                    elif k.key==e.key:
+                        print("Error:key conflict")
+                        #e.merge(k)
+                        return("Error:key conflict \n"+"This "+k.key+" already exist")
+                else:
+                    node=node.children[-1]
+        else:
+            self.root=Nobby()
+            self.root.add_satellite(k)
+            return("Insert  "+k.key+" Done")
+    
+    def BTree_Put_Independent(self,k):
+        '''
+        x有待插入
+        k是个pair已经有值
+        '''
+        if self.root:
+            node=self.root
+            while 1:
+                if len(node.pair)==self.max_pair:
+                    node=self.BTree_Split_Child(node)
+                if node.isleaf():
+                    for index,e in enumerate(node.pair):
+                        if k.key==e.key:
+                            print("key already exist")
+                            print("Update an already existing key")   
+                            e.merge(k)
+                            return(k.key+" This key already exist"+"\n"+"Update an already existing key")
+                    node.add_satellite(k)
+                    self.size+=1
+                    return("Put "+k.key+" value done")
+                for index,e in enumerate(node.pair):
+                    if k.key<e.key:
+                        node=node.children[index] #到孩子里面去找正确位置
+                        break
+                    elif k.key==e.key:
+                        print("key already exist")
+                        print("Update an already existing key")   
+                        e.merge(k)
+                        return(k.key+" This key already exist"+"\n"+"Update an already existing key")
+                else:
+                    node=node.children[-1]
+        else:
+            self.root=Nobby()
+            self.root.add_satellite(k)     
+            return("Put "+k.key+" value done +\n")
+
+    def BTree_Search(self,x,k):
+        if x==None:
+            x=self.root
+        i=1
+        x.n=len(x.pair)
+        while i<=x.n and k>x.pair[i-1].key:
+            i=i+1
+        if i<=x.n and k==x.pair[i-1].key:
+            return(x,i)
+        elif x.isleaf():
+            return NIL
+        else:
+            return self.BTree_Search(x.children[i-1],k)
+#——————————————————————————————————————————————————————————————    
+    def BTree_Search_Predecessor(self,x):
+        i=len(x.pair)
+        while not x.isleaf():
+            x=x.children[i]
+            i=len(x.pair)
+        return x.pair[-1]
+    
+    def BTree_Search_Successor(self,x):
+        while not x.isleaf():
+            x=x.children[0]
+        return x.pair[0]
+    
+        
+    def BTree_Delete(self,node,k):#此处k是要删除KEY值，一步到位，Node是包含KEY值的节点
+        '''
+        这边的delete是一个递归式子，一开始node从None开始的话，即从树的根节点开始递归
+        in——this——node用来判断是否转换成delete一个内结点
+        i用来记录node的第几个关键词是 该关键词，或者要往那条儿子线上下降的I
+        '''
+        node = node if node else self.root
+        in_this_node=False
+        i=-1
+        for i,p in enumerate(node.pair):
+            if k==p.key:
+                in_this_node=True
+                break
+            elif p.key>k:
+                in_this_node=False
+                break
+            elif p.key<k:
+                i +=1
+        #print(i)
+        #print (in_this_node)
+        if in_this_node:       #有待删除在内部节点中      内结点+叶节点，直接删
+            if node.isleaf():
+                node.delete(k)
+                self.size -=1
+                print("结束了")
+            else:
+                self.del_in(node,i,k)
+                print("内结点递减了")# 删除非叶节点的内结点,case2
+        else:             #有待删除不在内结点  不在内结点还是叶节点。这棵树就一个root            
+            if node.isleaf():
+                return
+                print("return了")
+            else:
+                self.del_not_in(node,i,k)#删除不在内结点的情况，case3   
+                print("不在节点递减了")
+
+        
+    def del_in(self,node,i,key):
+        #在case2内判断是a,b,c
+        left=node.children[i]
+        right=node.children[i+1]
+        #Case2a左儿子子树中删前驱
+        if len(left.pair)>=self.degree:
+            pred_pair=self.BTree_Search_Predecessor(left)
+            node.del_satellite(node.pair[i])
+            node.add_satellite(pred_pair)
+            self.BTree_Delete(left,pred_pair.key) 
+            print("++返回左儿子，删前驱的Key")
+        elif len(right.pair)>=self.degree:#Case2b 右儿子递归子删除后继
+            suce_pair=self.BTree_Search_Successor(right)
+            node.del_satellite(node.pair[i])
+            node.add_satellite(suce_pair)
+            self.BTree_Delete(right,suce_pair.key)
+            print("++返回右儿子，删后继的Key")
+
+        else:#Case2c k,z merge in to y,递归y删除k
+            left.add_satellite(node.pair[i])
+            for e in right.pair:
+                left.add_satellite(e)
+            for c in right.children:
+                left.add_child(c)
+            node.del_satellite(node.pair[i])
+            #node失去了指向右儿子的指针
+            node.del_child(right)
+            self.BTree_Delete(left,key)
+            print("++合并左右儿子，删新左儿子的原始Key")
+
+            
+    def del_not_in(self,node,i,key):
+        #Case3当前k不在节点中  
+        #处理一种特殊情况，node只有一个pair的情况,那么两个儿子都是t-1可以 （1+t-1+t-1）=2t-1正好合并
+        if len(node.pair)==1:
+            left=node.children[0]
+            right=node.children[1]
+            if left and right and len(left.pair)==len(right.pair)==self.degree-1:
+                #Case b1 处理所有儿子都只有T-1个关键词，没有人超过T,要合并两兄弟，而且将该关键词放到当中
+                for e in left.pair:
+                    node.add_entity(e)
+                for e in right.pair:
+                    node.add_entity(e)
+                for c in left.children:
+                    node.add_child(c)
+                for c in right.children:
+                    node.add_child(c)
+                node.del_child(left)
+                node.del_child(right)
+                self.BTree_Delete(node,key)
+                print("+++合并一下，继续删")
+                return
+        child=node.children[i] #选择某个儿子开始下降
+        if len(child.pair)==self.degree-1:
+            if i-1>-1:
+                left=node.children[i-1]
+            else:
+                left=None
+            if i+1<len(node.children):
+                right=node.children[i+1]
+            else:
+                right=None
+            if left and len(left.pair)>= self.degree:
+                #Case 3a ，如果这个儿子有T-1个关键词，降不下去。看他身边的左右儿子是否大于T,升兄弟，降爸爸
+                child.add_satellite(node.pair[i-1])#父亲降下去个最邻近的
+                node.del_satellite(node.pair[i-1])
+                node.add_satellite(left.pair[-1]) #左儿子升上去个最大的
+                if not child.isleaf():
+                    child.add_child(left.children[-1])
+                    left.del_child(left.children[-1])
+                left.del_satellite(left.pair[-1])
+            elif right and len(right.pair)>=self.degree:
+                #与上方对称
+                child.add_satellite(node.pair[i])
+                node.del_satellite(node.pair[i])
+                node.add_satellite(right.pair[0])
+                if not child.isleaf():
+                    child.add_child(right.children[0])
+                    right.del_child(right.children[0])
+                right.del_satellite(right.pair[0])
+            elif right and len(right.pair)==self.degree-1:
+                #Case 3b 所有的相邻节点都只有t-1个关键词，无法借，则合并node和right,
+                child.add_satellite(node.pair[i])
+                for p in right.pair:
+                    child.add_satellite(p)
+                if not child.isleaf():
+                    for c in right.children:
+                        child.add_child(c)
+                node.del_child(right)
+                node.del_satellite(node.pair[i])
+            elif left and len(left.pair)==self.degree-1:
+                child.add_satellite(node.pair[i-1])
+                for p in left.pair:
+                    child.add_satellite(p)
+                if not child.isleaf():
+                    for c in left.children:
+                        child.add_child(c)
+                node.del_child(left)
+                node.del_satellite(node.pair[i-1])
+            #往下降到儿子处递归
+        self.BTree_Delete(child,key)
+        print("+++合并好了，往下降一层，删儿子的原始KEY")                  
+            
+            
+    def BTree_preorder_traveller(self, node=None,level=0):
+        '''
+        除了遍历输出结果之外，还给每个结点标node.n属性
+        '''
+        if not node:
+            node = self.root
+            self.traveller="level=0 child="+len(self.root.children).__str__()+" key_pair= "+len(self.root.pair).__str__()+ "/"
+        for i in node.pair:
+            self.traveller += i.__str__()+  "/"
+            print(str(i.key)+'-'+str(i.satellite))
+        if not node.isleaf():
+            for index, child in enumerate(node.children):
+                self.traveller += "\nlevel=" + (level + 1).__str__() + " child=" + len(node.children).__str__() +" key pair= "+len(node.pair).__str__() +" /"
+                self.BTree_preorder_traveller(child,level+1)
+        node.n=len(node.pair)
+
+    def BTree_inorder_traveller(self, node=None):
+        if not node:
+            node = self.root
+            self.dump=" "
+        if not node.isleaf():
+            for index, child in enumerate(node.children):
+                self.BTree_inorder_traveller(child)
+        node.n=len(node.pair)
+        for i in node.pair:
+            self.dump += i.__str__()+  "\n"
+            print(str(i.key)+'-'+str(i.satellite))        
+                            
+    def BTree_printall(self):
+        self.BTree_preorder_traveller()
+        try:
+            file=open('../file/BTree.preorder.txt','w',-1,'utf-8')
+            file.write(self.traveller)
+            print ('Travel OK')
+        except FileNotFoundError:
+            return -1
+        return 1
+    
+#####################
+
+def initialize():
+    global treetype,Btree,RBtree
+    
+def create():
+    Btree=BTree()
+    file=open('../file/unix.txt')
+    num=0
+    for i in file:
+        if num %2==0:
+            pp=i.split()
+            ppp=len(str(pp))
+            key=str(pp)[2:ppp-2]
+        else:
+            pp=i.split()                        
+            pppp=len(pp)
+            if pppp==1:
+                value=pp[0]
+            if pppp==2:
+                value=pp[0]+pp[1]
+        num=num+1
+        if num%2==0 and num>0:
+            T=pair()
+            T.key=key
+            T.satellite=value
+            Btree.BTree_Insert(T)
+    return(Btree)
+    
+def LoadFile(treetype):
+    name=input("请输入您想要添加到字典的文本表格名称：\n")
+    file=open('../file/'+str(name)+'.txt')
+    if treetype=='Btree':
+        Btree=BTree()
+        #print(Btree.root)
+    num=0
+    for i in file:
+        if num %2==0:
+            pp=i.split()
+            ppp=len(str(pp))
+            key=str(pp)[2:ppp-2]
+            #print(key)
+        else:
+            pp=i.split()                        
+            pppp=len(pp)
+            if pppp==1:
+                value=pp[0]
+            if pppp==2:
+                value=pp[0]+pp[1]
+            #print(value)
+        num=num+1
+        if num%2==0 and num>0:
+            T=pair()
+            T.key=key
+            T.satellite=value
+            Btree.BTree_Insert(T)
+        #print(i)
+        #print(Btree.size)
+    #Btree.BTree_printall()
+    return("OK")
+    
+def Insert(Btree):
+    key=input("请输入您想要增添到红黑树的单词: \n")
+    satellite=input("请输入您想要增添到该键值的单词解释:\n")  
+    C=pair()
+    C.key=key
+    C.satellite=satellite
+    a=Btree.BTree_Insert_Independent(C)
+    return(a)
+        
+def Put(Btree):
+    key=input("请输入您想要增添到红黑树的单词: \n")
+    satellite=input("请输入您想要增添到该键值的单词解释:\n")  
+    C=pair()
+    C.key=key
+    C.satellite=satellite
+    b=Btree.BTree_Put_Independent(C)
+    return(b)
+    
+def GetValue(Btree):
+    key=input("请输入您想要查找中文字义的单词: \n")
+    a=Btree.BTree_Search(None,key)
+    if a!=NIL:
+        print("Find the translation")
+        print(a[0].pair[a[1]-1].satellite)
+        return("Find the translation"+"\n"+key+" : "+a[0].pair[a[1]-1].satellite)
+    if a==NIL:
+        print("Error: key missing")
+        return("Error: key missing \n"+"Could not find : "+key)
+        
+def DelKey(Btree):
+    key=input("请输入您想要删除的单词: \n")
+    a=Btree.BTree_Search(None,key)
+    if a==NIL:
+        print("Error: key missing")
+        return("Error: key missing \n"+"Could not find : "+key)
+    else: 
+        Btree.BTree_Delete(None,key)
+        return("Delete "+key+" already done")
+
+
+def Dump(Btree):
+    print('key-value')
+    Btree.BTree_inorder_traveller(Btree.root)
+    print("Dump print finished")
+    '''
+    此处dump的功能除了可以把所有的单词对print出来
+    还可以将这些单词对全部放入一个文档中
+    '''
+    file_handler = open('../file/BTree_dump.txt', 'w', -1, "utf-8")
+    file_handler.write(Btree.dump)
+    return('key-value'+"\n"+Btree.dump+'Dump finished')
+    print ('Dump into file finished')     
+#——————————————————————————————————
+#print (Btree.root.children)
+#Btree=LoadFile('Btree')
+'''
+检查是否成功insert and put and GetValue
+Insert(Btree)
+print(Btree.root.pair[0].key)
+print(Btree.root.pair[0].satellite)
+Put(Btree)
+print(Btree.root.pair[0].key)
+print(Btree.root.pair[0].satellite)
+GetValue(Btree)
+'''
+
+'''
+检查是否成功delete"
+print(Btree.size)
+DelKey(Btree)
+#print(Btree.root)
+GetValue(Btree)
+GetValue(Btree)
+GetValue(Btree)
+Btree.BTree_printall()
+print(Btree.size)
+'''
+
+#a=GetValue(Btree)
+#print(a[0].pair[a[1]-1].satellite)
+
+
+#Dump(Btree)
+
+
+class Application(Frame):
+    def __init__(self,master=None):
+        Frame.__init__(self,master)
+        self.pack()
+        self.createWidgets()
+    
+    def LoadFile(self):
+        A=LoadFile('Btree')    
+        self.show.delete(1.0,END)
+        self.show.insert(1.0,A)
+    
+    def Insert(self):
+        Btree=create() 
+        a=Insert(Btree)
+        self.show.delete(1.0,END)
+        self.show.insert(1.0,a)
+
+    def Put(self):
+        RBtree=create() 
+        b=Put(RBtree)
+        h="\n为了验证单词是否添加成功，请查找您刚刚添加的词 \n"
+        i=GetValue(RBtree)
+        self.show.delete(1.0,END)
+        self.show.insert(END,b)
+        self.show.insert(END,h)
+        self.show.insert(END,i)
+
+    
+    def GetValue(self):
+        RBtree=create()   
+        c=GetValue(RBtree)
+        self.show.delete(1.0,END)
+        self.show.insert(END,c)
+        
+        
+    def DelKey(self):
+        RBtree=create() 
+        d=DelKey(RBtree)
+        print("验证单词是否添加成功，请查找您刚刚添加的词")
+        f="\n为了验证单词是否添加成功，请查找您刚刚添加的词 \n"
+        g=GetValue(RBtree)
+        self.show.delete(1.0,END)        
+        self.show.insert(END,d)
+        self.show.insert(END,f)
+        self.show.insert(END,g)
+                       
+    def Dump(self):
+        RBtree=create() 
+        e=Dump(RBtree)
+        self.show.delete(1.0,END)
+        self.show.insert(END,e)
+    
+    def createWidgets(self):
+        self.QUIT=Button(self)
+        self.QUIT["text"]="Quit"
+        self.QUIT["fg"]="blue"
+        self.QUIT["command"]=self.quit
+        
+        self.QUIT.pack(fill=X)
+        
+        self.load=Button(self)
+        self.load["text"]="1.Load"
+        self.load["command"]=self.LoadFile
+        
+        self.load.pack(fill=X)
+
+        self.insert=Button(self)
+        self.insert["text"]="2.Insert"
+        self.insert["command"]=self.Insert
+        
+        self.insert.pack(fill=X)
+        
+        self.put=Button(self)
+        self.put["text"]="3.Put"
+        self.put["command"]=self.Put
+        
+        self.put.pack(fill=X)
+
+        self.getvalue=Button(self)
+        self.getvalue["text"]="4.Getvalue"
+        self.getvalue["command"]=self.GetValue
+        self.getvalue.pack(fill=X)
+        
+        self.delkey=Button(self)
+        self.delkey["text"]="5.Delkey"
+        self.delkey["command"]=self.DelKey
+        self.delkey.pack(fill=X)        
+
+        self.dump=Button(self)
+        self.dump["text"]="6.Dump"
+        self.dump["command"]=self.Dump
+        self.dump.pack(fill=X)
+        
+        self.show=Text(self)	
+        self.show.pack(fill=X,side="bottom")
+        self.show.insert(END, "print board")  #END表示插入到当前文本最后
+
+        
+
+
+root=Tk()
+root.title("Btree")
+app=Application(master=root)
+app.mainloop()
+root.destroy()
+
+
